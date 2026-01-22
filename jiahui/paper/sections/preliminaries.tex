@@ -1,0 +1,138 @@
+\section{Preliminaries and Problem Setup}
+\label{sec:preliminaries}
+
+To ground our theoretical analysis, we must first precisely define the model architecture, the learning protocol, and the statistical framework. This section establishes the mathematical notation and assumptions that underpin our main results. Our goal is to strike a balance between realism and tractability, focusing on the simplest non-trivial setting that captures the essential features of nonlinear in-context learning (ICL).
+
+\subsection{Architecture: The Nonlinear Transformer Block}
+\label{subsec:architecture}
+
+We analyze a single transformer block, which forms the fundamental computational unit of modern large language models. Crucially, we maintain both key nonlinearities: the \textbf{softmax attention} and the \textbf{nonlinear Multi-Layer Perceptron (MLP)}. For theoretical clarity, we make two simplifying but non-essential assumptions: (1) we consider a \textit{single-layer} transformer, and (2) we analyze the \textit{full-context} (non-causal) setting where all tokens can attend to all others in the prompt. This mirrors the setup common in linear ICL theory and allows us to isolate the core regularization mechanisms without the additional complexity of autoregressive masking. The extension to causal attention presents fascinating challenges for future work (see Discussion, Section 7.3).
+
+\begin{definition}[Single-Layer Transformer Block]
+	Given an input sequence of token representations \( X = [x_1, x_2, \dots, x_L] \in \R^{L \times d} \), the output of the transformer block is computed as:
+	\begin{align}
+		Z &= \text{LayerNorm}(X + \text{Attention}(X)) \label{eq:attn_residual} \\
+		\text{Transformer}(X) &= \text{LayerNorm}(Z + \text{MLP}(Z)) \label{eq:mlp_residual}
+	\end{align}
+	where LayerNorm denotes layer normalization. We will often absorb the effect of LayerNorm into an effective re-scaling of inputs for theoretical analysis, as its primary role is stabilization rather than changing the fundamental function class.
+\end{definition}
+
+\noindent \textbf{Attention Mechanism.} We consider a standard multi-head scaled dot-product attention:
+\begin{align}
+	\text{Attention}(X) &= \text{Concat}_{h=1}^{H}\left(\text{softmax}\left(\frac{Q_h K_h\trans}{\sqrt{d_k}}\right)V_h\right)W_O, \\
+	\text{where } Q_h &= X W_Q^{(h)}, \quad K_h = X W_K^{(h)}, \quad V_h = X W_V^{(h)}.
+\end{align}
+Here, \( H \) is the number of heads, \( d_k = d/H \) is the key dimension per head, and \( W_Q^{(h)}, W_K^{(h)}, W_V^{(h)} \in \R^{d \times d_k} \), \( W_O \in \R^{H d_k \times d} \) are learnable projection matrices. The \text{softmax} is applied row-wise. This is the primary source of nonlinearity from the attention subsystem.
+
+\noindent \textbf{Multi-Layer Perceptron (MLP).} The MLP consists of two linear transformations with a nonlinear activation in between:
+\begin{align}
+	\text{MLP}(Z) &= W_2 \cdot \sigma(W_1 Z + b_1 \mathbf{1}\trans) + b_2 \mathbf{1}\trans,
+\end{align}
+where \( W_1 \in \R^{m \times d}, b_1 \in \R^{m}, W_2 \in \R^{d \times m}, b_2 \in \R^{d} \), \( \mathbf{1} \) is a row vector of ones, and \( \sigma: \R \to \R \) is the activation function. We primarily focus on \( \sigma(\cdot) = \text{ReLU}(\cdot) = \max(0, \cdot) \), but our framework can be extended to other Lipschitz activations like GeLU or Swish. The hidden dimension \( m \) is typically larger than \( d \) (e.g., \( m = 4d \)).
+
+\textbf{The ICL Prompt Format.} For a supervised learning task with \( n \) in-context examples, the prompt is constructed as an interleaved sequence of inputs and outputs, followed by a query input:
+\begin{equation}
+	P = [x_1, y_1, x_2, y_2, \dots, x_n, y_n, x_{\text{query}}] \in \R^{(2n+1) \times d}.
+	\label{eq:prompt_format}
+\end{equation}
+Each \( x_i \) and \( x_{\text{query}} \) are token embeddings of dimension \( d \). The labels \( y_i \) are also embedded into \( \R^d \), though for regression tasks we often consider a scalar output encoded in one dimension. The model processes the entire prompt \( P \) and produces an output sequence of the same length. The prediction for \( y_{\text{query}} \) is read off from the last token's output representation (typically after a final linear projection).
+
+\subsection{Data Generation and Task Distribution}
+\label{subsec:data_model}
+
+We formalize ICL as \textit{meta-learning} from a distribution of tasks. This is crucial for distinguishing our analysis from standard supervised learning theory.
+
+\begin{definition}[Task Distribution]
+	Let \( \mathcal{X} \subseteq \R^d \) be the input space. A task \( \mathcal{T} \) is defined by a ground-truth function \( f^*: \mathcal{X} \to \R \) and a data distribution \( \mathcal{D} \) over \( \mathcal{X} \times \R \). The model encounters tasks drawn from a meta-distribution \( \mathcal{P}_{\mathcal{F}} \) over a function class \( \mathcal{F} \). We assume \( \mathcal{F} \) is a bounded subset of a Reproducing Kernel Hilbert Space (RKHS) \( \mathcal{H}_K \) induced by a kernel \( K \):
+	\[
+	\mathcal{F} = \{ f \in \mathcal{H}_K : \|f\|_{\mathcal{H}_K} \leq B \},
+	\]
+	where \( B > 0 \) is a constant. The specific form of \( K \) will emerge from our analysis of the transformer architecture.
+\end{definition}
+
+\noindent \textbf{Data Generation Process.} For a given task with function \( f^* \), the observed data is generated with noise:
+\begin{equation}
+	y = f^*(x) + \epsilon, \quad \text{where } x \sim \mathcal{N}(0, \Sigma), \quad \epsilon \sim \mathcal{N}(0, \sigma^2).
+	\label{eq:data_gen}
+\end{equation}
+The input covariance \( \Sigma \in \R^{d \times d} \) is a positive definite matrix. We allow \( \Sigma \) to be anisotropic, with eigenvalues \( \lambda_1 \geq \lambda_2 \geq \dots \geq \lambda_d > 0 \). This captures the fact that features in real-world data have varying scales and importance. The Gaussian assumption for \( x \) is common in theoretical analyses for tractability, but our core insights are expected to hold for sub-Gaussian distributions.
+
+\textbf{Why the RKHS Assumption?} Assuming the target functions reside in an RKHS is not overly restrictive; it essentially requires the functions to be reasonably smooth relative to the kernel \( K \). More importantly, as we will prove, the transformer's implicit learning algorithm is itself a form of kernel ridge regression in an RKHS defined by its architecture. This creates a natural alignment: the model's inductive bias (its implicit kernel) should match the complexity of the tasks it is designed to learn.
+
+\subsection{Training Protocol and Evaluation}
+\label{subsec:protocol}
+
+\subsubsection{Pre-training Objective}
+The model is pre-trained on a massive corpus of text. From the perspective of ICL theory, we can view this as training on a sequence of synthetic ICL episodes. Formally, the parameters \( \theta \) (collecting all \( W \) and \( b \) matrices) are learned by minimizing the expected loss over the task distribution:
+\begin{equation}
+	\min_{\theta} \mathcal{L}_{\text{pre}}(\theta) = \E_{f^* \sim \mathcal{P}_{\mathcal{F}}} \E_{\substack{(x_1, y_1, \dots, x_n, y_n) \\ \sim \text{i.i.d. from Eq. \ref{eq:data_gen}} \\ x_{\text{query}} \sim \mathcal{N}(0, \Sigma)}} \left[ \ell\left( y_{\text{query}}, \; \text{Transformer}_{\theta}(P)_{[\text{last}]} \right) \right],
+	\label{eq:pretrain_obj}
+\end{equation}
+where \( \ell \) is a loss function (e.g., mean squared error for regression, cross-entropy for classification), and \( \text{Transformer}_{\theta}(P)_{[\text{last}]} \) denotes the model's scalar prediction for the last token. Crucially, the prompt length \( n \) and the specific examples vary across episodes during pre-training, forcing the model to learn a general-purpose in-context learning algorithm rather than a single function.
+
+\begin{remark}[The Role of Next-Token Prediction]
+	In real LLM pre-training, the objective is next-token prediction over a contiguous text corpus. Our formulation in Eq. \ref{eq:pretrain_obj} is a \textit{mathematical abstraction} that distills the essential meta-learning aspect of ICL. Prior work \citep{chan2022data} has shown that training on random instances of simple function classes is sufficient to elicit ICL behavior, justifying our simplified pre-training objective for theoretical analysis.
+\end{remark}
+
+\subsubsection{In-Context Learning at Test Time}
+At test time, the model is presented with a new task \( f^*_{\text{new}} \sim \mathcal{P}_{\mathcal{F}} \) and a prompt \( P_{\text{test}} \) containing \( n \) fresh, noisy examples generated according to \cref{eq:data_gen} using \( f^*_{\text{new}} \). The model processes \( P_{\text{test}} \) and produces a prediction \( \hat{y}_{\text{query}} = \hat{f}(x_{\text{query}}) \) for the query token.
+
+The learned in-context learning algorithm can thus be viewed as a mapping:
+\[
+A_{\theta}: (P_{\text{context}}, x_{\text{query}}) \mapsto \hat{y}_{\text{query}},
+\]
+where \( P_{\text{context}} = [(x_i, y_i)]_{i=1}^n \).
+
+\subsubsection{Evaluation Metric}
+We evaluate the performance of the ICL algorithm by its expected excess risk on the new task. The \textbf{population risk} for a predictor \( \hat{f} \) (implicitly defined by \( A_{\theta} \) given a context) is:
+\[
+L(\hat{f}; f^*_{\text{new}}) = \E_{x \sim \mathcal{N}(0, \Sigma)}[(\hat{f}(x) - f^*_{\text{new}}(x))^2].
+\]
+We are interested in bounding the \textbf{meta-excess risk}:
+\begin{equation}
+	\mathcal{E}(n) = \E_{f^*_{\text{new}} \sim \mathcal{P}_{\mathcal{F}}} \E_{\mathcal{D}_{\text{context}}} [ L(\hat{f}; f^*_{\text{new}}) - L(f^*_{\text{new}}; f^*_{\text{new}}) ],
+	\label{eq:meta_excess_risk}
+\end{equation}
+where the inner expectation is over the random \( n \)-example context dataset \( \mathcal{D}_{\text{context}} \) used to form the prompt. This measures how well the in-context learner, on average across tasks, approximates the true function given \( n \) examples. Note that \( L(f^*_{\text{new}}; f^*_{\text{new}}) = \sigma^2 \) is the irreducible noise variance.
+
+\subsection{Key Analytical Assumptions}
+\label{subsec:assumptions}
+
+To enable a non-asymptotic analysis, we adopt the following standard assumptions:
+
+\begin{enumerate}
+	\item \textbf{Gradient Flow Training:} We analyze the continuum limit of gradient descent with an infinitesimally small learning rate (gradient flow). This simplifies the dynamics and is a standard approach in implicit regularization theory \citep{ji2020gradient}. Our empirical validation shows that conclusions hold for discrete SGD/Adam in practice.
+	\item \textbf{Infinite MLP Width:} For the MLP component, we leverage Neural Tangent Kernel (NTK) theory \citep{jacot2018neural}. We assume the hidden layer width \( m \to \infty \), which causes the function \( f_{\text{MLP}} \) to evolve in a reproducing kernel Hilbert space defined by the NTK. This allows a precise characterization of its contribution to the overall implicit kernel.
+	\item \textbf{Random Initialization:} Parameters are initialized with independent Gaussian distributions: \( W_Q, W_K, W_V, W_O, W_1, W_2 \sim \mathcal{N}(0, \text{scale}^2) \), and biases \( b_1, b_2 = 0 \). The specific scaling (e.g., He or LeCun initialization) influences the relative scaling of the kernels \( K_{\text{att}} \) and \( K_{\text{mlp}} \).
+	\item \textbf{Full-Context Processing:} As stated, we assume non-causal attention for the primary analysis. This means the attention mechanism for any token (including \( x_{\text{query}} \)) can attend to all tokens in the prompt. This is analytically cleaner and aligns with linear ICL analyses. The critical reader might view this as studying an "ICL-enabled encoder" rather than a strict decoder.
+\end{enumerate}
+
+\subsection{Notation Summary}
+\label{subsec:notation}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Key Notation}
+	\begin{tabular}{lp{0.7\linewidth}}
+		\toprule
+		Symbol & Description \\
+		\midrule
+		\( n \) & Number of in-context example pairs. \\
+		\( d \) & Token embedding dimension. \\
+		\( m \) & Hidden dimension of the MLP. \\
+		\( H \) & Number of attention heads. \\
+		\( \sigma(\cdot) \) & Nonlinear activation function (ReLU). \\
+		\( \Sigma \) & Input covariance matrix, with eigenvalues \( \{\lambda_i\}_{i=1}^d \). \\
+		\( \mathcal{H}_K \) & Reproducing Kernel Hilbert Space (RKHS) with kernel \( K \). \\
+		\( B \) & Upper bound on the RKHS norm of target functions: \( \|f^*\|_{\mathcal{H}_K} \leq B \). \\
+		\( K_{\text{att}}, K_{\text{mlp}} \) & Kernels induced by the attention and MLP components. \\
+		\( d_{\text{eff}} \) & Effective dimension of a kernel relative to \( \Sigma \). \\
+		\( \theta \) & Collection of all model parameters. \\
+		\( P \) & Prompt sequence of shape \( (2n+1) \times d \). \\
+		\( \mathcal{P}_{\mathcal{F}} \) & Meta-distribution over tasks/functions. \\
+		\bottomrule
+	\end{tabular}
+	\label{tab:notation}
+\end{table}
+
+With this framework in place, we are now equipped to state and prove our main theoretical results. The central question we answer is: Given this architecture and training protocol, what learning algorithm does the transformer implicitly implement when presented with an in-context prompt, and what statistical guarantees does that algorithm provide?

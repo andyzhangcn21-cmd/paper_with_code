@@ -1,0 +1,31 @@
+{
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "pdflatex -> bibtex -> pdflatex -> pdflatex",
+      "tools": ["pdflatex", "bibtex", "pdflatex", "pdflatex"]
+    }
+  ],
+  "latex-workshop.latex.tools": [
+    {
+      "name": "pdflatex",
+      "command": "C:\\Users\\ASUS\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\pdflatex.exe",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "bibtex",
+      "command": "C:\\Users\\ASUS\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\bibtex.exe",
+      "args": ["%DOCFILE%"]
+    }
+  ],
+  "latex-workshop.latex.recipe.default": "pdflatex -> bibtex -> pdflatex -> pdflatex",
+  "latex-workshop.latex.autoClean.run": "never",
+  "latex-workshop.latex.autoClean.run": "never",
+  "latex-workshop.latex.clean.enabled": false,
+  "latex-workshop.latex.autoBuild.run": "never"
+
+}
