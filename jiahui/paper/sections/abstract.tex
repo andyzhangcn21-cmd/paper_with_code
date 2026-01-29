@@ -1,7 +1,0 @@
-\begin{abstract}
-	
-Recent theoretical advances have established that linear transformers perform in-context learning (ICL) by implementing gradient descent on linear regression tasks, often equivalent to ridge regression. However, real-world language models employ nonlinear activations (e.g., ReLU, GeLU) and softmax attention, whose implicit regularization effects remain poorly understood. This paper provides the first systematic theoretical analysis of implicit regularization in nonlinear ICL. We prove that a single-layer transformer with nonlinear MLP and softmax attention implicitly minimizes a kernel ridge regression objective in a reproducing kernel Hilbert space (RKHS) defined by the attention mechanism. We derive explicit generalization bounds that depend on the spectral properties of the attention kernel and the Lipschitz constant of the activation function. Furthermore, we identify a phase transition phenomenon: when the context length exceeds a critical threshold determined by the effective dimension of the kernel, the implicit regularization shifts from $\ell_2$-norm penalty to a sparsity-inducing penalty akin to $\ell_1$ regularization. Our theoretical findings are validated through synthetic experiments on polynomial regression and image classification tasks, demonstrating close alignment between empirical test error and our theoretical bounds.
-
-\textbf{Keywords:} In-context learning, implicit regularization, generalization bounds, kernel methods, transformers, nonlinear activation
-
-\end{abstract}
