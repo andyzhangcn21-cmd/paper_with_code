@@ -1,0 +1,13 @@
+torch>=2.1
+numpy>=1.23
+tqdm>=4.66
+pyyaml>=6.0
+pydantic>=2.6
+networkx>=3.2
+transformers>=4.40
+tokenizers>=0.19
+scikit-learn>=1.4
+# Optional (if you want a real RGCN on heterogeneous graphs):
+# torch-geometric>=2.5
+# torch-scatter
+# torch-sparse

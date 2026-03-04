@@ -1,0 +1,27 @@
+data:
+  problems_path: examples/toy_problems.jsonl
+  interactions_path: examples/toy_interactions.jsonl
+  user_profiles_path: examples/toy_user_profiles.jsonl
+  kg_dir: artifacts/toy_kg
+
+kg:
+  llm_provider: mock
+
+model:
+  text_model_name: bert-base-uncased
+  code_model_name: microsoft/codebert-base
+  concept_dim_in: 100
+  rgcn_hidden: 256
+  fused_dim: 256
+  dropout: 0.2
+
+train:
+  seed: 42
+  batch_size: 2
+  lr: 5e-5
+  weight_decay: 0.01
+  max_epochs: 3
+  patience: 2
+  grad_clip_norm: 1.0
+  device: cpu
+  output_dir: outputs/toy_run

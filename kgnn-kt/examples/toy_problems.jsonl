@@ -1,0 +1,3 @@
+{"problem_id":"p1","text":"Implement Dijkstra shortest path using a priority queue.","code":"import heapq\n# dijkstra with heap\n"}
+{"problem_id":"p2","text":"Count distinct elements using hashmap.","code":"from collections import defaultdict\n# use hash map\n"}
+{"problem_id":"p3","text":"Compute fibonacci with DP and recursion.","code":"def fib(n):\n    if n<=1: return n\n    return fib(n-1)+fib(n-2)\n"}

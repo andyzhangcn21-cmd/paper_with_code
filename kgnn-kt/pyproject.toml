@@ -1,0 +1,11 @@
+[project]
+name = "kgnn-kt"
+version = "0.1.0"
+description = "KGNN-KT: Knowledge tracing with LLM-extracted knowledge graphs."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = []
+
+[tool.ruff]
+line-length = 100

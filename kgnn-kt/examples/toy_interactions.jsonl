@@ -1,0 +1,5 @@
+{"user_id":"u1","problem_id":"p1","correct":1,"timestamp":1700000000}
+{"user_id":"u1","problem_id":"p2","correct":0,"timestamp":1700000100}
+{"user_id":"u2","problem_id":"p1","correct":0,"timestamp":1700000200}
+{"user_id":"u2","problem_id":"p3","correct":1,"timestamp":1700000300}
+{"user_id":"u3","problem_id":"p2","correct":1,"timestamp":1700000400}
